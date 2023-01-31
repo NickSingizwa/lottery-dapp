@@ -2,15 +2,37 @@ import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
 import Header from '../components/Header'
-import { useContract,useMetamask,useAddress,useDisconnect } from "@thirdweb-dev/react"
+import { useContract,useMetamask,useAddress,useDisconnect,useContractRead,useContractWrite } from "@thirdweb-dev/react"
 import Login from '../components/Login'
 import Loading from '../components/Loading'
 import { useState } from 'react'
+import { ethers } from 'ethers'
+import { currency } from '../constants'
+import CountdownTimer from '../components/CountdownTimer'
+import toast from 'react-hot-toast'
 
 const Home: NextPage = () => {
   const [quantity,setQuantity] = useState<number>(1)
   const address = useAddress();
   const { contract,isLoading} = useContract(process.env.NEXT_PUBLIC_LOTTERY_CONTRACT_ADDRESS)
+  const { data: remainingTickets } = useContractRead(contract, 'RemainingTickets')
+  const { data: currentWinningReward } = useContractRead(contract, 'CurrentWinningReward')
+  const { data: ticketPrice } = useContractRead(contract, 'ticketPrice')
+  const { data: ticketCommission } = useContractRead(contract, 'ticketCommission')
+  const { data: expiration } = useContractRead(contract, 'expiration')
+  const { mutateAsync: BuyTickets } = useContractWrite(contract, 'BuyTickets')
+
+  const handleClick = async () => {
+    if (!ticketPrice) return
+    const notification = toast.loading('Buying tickets...')
+    try{
+
+    }catch(err){
+      toast.error("whoops something went wrong",{
+        id: notification
+      })
+    }
+  }
 
   if (isLoading ) return <Loading/>
     
@@ -32,15 +54,18 @@ const Home: NextPage = () => {
         <div className='flex justify-between p-2 space-x-2'>
           <div className='stats'>
             <h2 className='text-sm'>Total Pool</h2>
-            <p>0.1 MATIC</p>
+            <p>{currentWinningReward && ethers.utils.formatEther(currentWinningReward.toString())} {" "}{currency}</p>
           </div>
           <div className="stats">
             <h2 className='text-sm'>Tickets Remaining</h2>
-            <p className='text-xl'>100</p>
+            <p className='text-xl'>{remainingTickets?.toNumber()}</p>
           </div>
         </div>
 
-{/* countdown */}
+      {/* countdown */}
+      <div className='mt-5 mb-3'>
+        <CountdownTimer/>
+      </div>
 
       </div>
 
@@ -48,7 +73,7 @@ const Home: NextPage = () => {
         <div className="stats-container">
           <div className='flex justify-between items-center text-white pb-2'>
             <h2>Price per ticket</h2>
-            <p>0.01 MATIC</p>
+            <p>{ticketPrice && ethers.utils.formatEther(ticketPrice.toString())} {" "}{currency}</p>
           </div>
 
           <div className='flex text-white items-center space-x-2 bg-[#091818] border-[#004337] border p-4'>
@@ -59,26 +84,20 @@ const Home: NextPage = () => {
           <div className='space-y-2 mt-5'>
             <div className='flex items-center justify-between text-emerald-300 text-sm italic font-extrabold'>
               <p>Total cost of tickets</p>
-              <p>0.999</p>
+              <p>{ticketPrice && Number(ethers.utils.formatEther(ticketPrice.toString())) * quantity} {" "}{currency}</p>
             </div>
             <div className='flex items-center justify-between text-emerald-300 text-xs italic'>
               <p>Service fees</p>
-              <p>0.0001 MATIC</p>
+              <p>{ticketCommission && ethers.utils.formatEther(ticketCommission.toString())} {" "}{currency}</p>
             </div>
             <div className='flex items-center justify-between text-emerald-300 text-xs italic'>
               <p>+ Network Fees</p>
               <p>TBC</p>
             </div>
           </div>
-          <button className='mt-5 w-full bg-gradient-to-br from-orange-500 to-emerald-600 px-10 py-5 rounded-md text-white shadow-xl disabled:from-gray-700 disabled:to-gray-500 disabled:text-gray-100 disabled:cursor-not-allowed'>Buy tickets</button>
-
+          <button onClick={handleClick} disabled={expiration?.toString() < Date.now().toString() || remainingTickets?.toNumber() === 0} className='mt-5 w-full bg-gradient-to-br from-orange-500 to-emerald-600 px-10 py-5 rounded-md text-white shadow-xl disabled:from-gray-700 disabled:to-gray-500 disabled:text-gray-100 disabled:cursor-not-allowed'>Buy tickets</button>
         </div>
       </div>
-      </div>
-
-{/* price box */}
-      <div>
-
       </div>
       </div>
 
