@@ -5,7 +5,7 @@ import Header from '../components/Header'
 import { useContract,useMetamask,useAddress,useDisconnect,useContractRead,useContractWrite } from "@thirdweb-dev/react"
 import Login from '../components/Login'
 import Loading from '../components/Loading'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import { currency } from '../constants'
 import CountdownTimer from '../components/CountdownTimer'
@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 
 const Home: NextPage = () => {
   const [quantity,setQuantity] = useState<number>(1)
+  const [userTickets,setUserTickets] = useState(0)
   const address = useAddress();
   const { contract,isLoading} = useContract(process.env.NEXT_PUBLIC_LOTTERY_CONTRACT_ADDRESS)
   const { data: remainingTickets } = useContractRead(contract, 'RemainingTickets')
@@ -20,7 +21,15 @@ const Home: NextPage = () => {
   const { data: ticketPrice } = useContractRead(contract, 'ticketPrice')
   const { data: ticketCommission } = useContractRead(contract, 'ticketCommission')
   const { data: expiration } = useContractRead(contract, 'expiration')
+  const { data: tickets } = useContractRead(contract, 'getTickets')
   const { mutateAsync: BuyTickets } = useContractWrite(contract, 'BuyTickets')
+
+  useEffect(()=>{
+    if(!tickets) return
+    const totalTickets: string[] = tickets
+    const noOfUserTickets = totalTickets.reduce((total,ticketAddress)=>(ticketAddress === address ? total+1 : total),0)
+    setUserTickets(noOfUserTickets)
+  },[tickets,address])
 
   const handleClick = async () => {
     if (!ticketPrice) return
@@ -100,8 +109,18 @@ const Home: NextPage = () => {
               <p>TBC</p>
             </div>
           </div>
-          <button onClick={handleClick} disabled={expiration?.toString() < Date.now().toString() || remainingTickets?.toNumber() === 0} className='mt-5 w-full bg-gradient-to-br from-orange-500 to-emerald-600 px-10 py-5 rounded-md text-white shadow-xl disabled:from-gray-700 disabled:to-gray-500 disabled:text-gray-100 disabled:cursor-not-allowed'>Buy tickets</button>
+          <button onClick={handleClick} disabled={expiration?.toString() < Date.now().toString() || remainingTickets?.toNumber() === 0} className='mt-5 w-full font-semibold bg-gradient-to-br from-orange-500 to-emerald-600 px-10 py-5 rounded-md text-white shadow-xl disabled:from-gray-700 disabled:to-gray-500 disabled:text-gray-100 disabled:cursor-not-allowed'>Buy {quantity} tickets</button>
         </div>
+
+        {userTickets > 0 && <div className='stats'>
+            <p className='text-lg mb-2'>you have {userTickets} Tickets in this draw</p>
+            <div className='flex max-w-sm flex-wrap gap-x-2 gap-y-2'>
+              {Array(userTickets).fill("").map((_,index)=>(       //_ for ignoring the normal parameter and taking only the index
+                <p className='text-emerald-300 h-20 w-12 bg-emerald-500/30 rounded-lg flex flex-shrink-0 items-center justify-center text-xs italic' key={index}>{index + 1}</p>
+              ))}
+            </div>
+          </div>}
+
       </div>
       </div>
       </div>
