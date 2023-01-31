@@ -26,7 +26,12 @@ const Home: NextPage = () => {
     if (!ticketPrice) return
     const notification = toast.loading('Buying tickets...')
     try{
-
+      const data = await BuyTickets([
+        {
+          value: ethers.utils.parseEther((Number(ethers.utils.formatEther(ticketPrice))*quantity).toString()),
+        }
+      ])
+      toast.success("Tickets bought successfully",{id: notification})
     }catch(err){
       toast.error("whoops something went wrong",{
         id: notification
