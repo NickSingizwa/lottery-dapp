@@ -14,6 +14,8 @@ import toast from 'react-hot-toast'
 const Home: NextPage = () => {
   const [quantity,setQuantity] = useState<number>(1)
   const [userTickets,setUserTickets] = useState(0)
+
+  //solidity functions from the contract I deployed on thirdweb
   const address = useAddress();
   const { contract,isLoading} = useContract(process.env.NEXT_PUBLIC_LOTTERY_CONTRACT_ADDRESS)
   const { data: remainingTickets } = useContractRead(contract, 'RemainingTickets')
@@ -22,7 +24,9 @@ const Home: NextPage = () => {
   const { data: ticketCommission } = useContractRead(contract, 'ticketCommission')
   const { data: expiration } = useContractRead(contract, 'expiration')
   const { data: tickets } = useContractRead(contract, 'getTickets')
+  const { data: winnings } = useContractRead(contract, 'getWinningsForAddress',address)
   const { mutateAsync: BuyTickets } = useContractWrite(contract, 'BuyTickets')
+  const { mutateAsync: WithdrawWinnings } = useContractWrite(contract, 'WithdrawWinnings')
 
   useEffect(()=>{
     if(!tickets) return
@@ -48,6 +52,18 @@ const Home: NextPage = () => {
     }
   }
 
+  const onWithdrawWinnings = async () => {
+    const notification = toast.loading('Withdrawing winnings...')
+    try{
+      const data = await WithdrawWinnings([{}])
+      toast.success("Winnings withdrawn successfully",{id: notification})
+    }catch(err){
+      toast.error("whoops something went wrong",{
+        id: notification
+      })
+    }
+  }
+
   if (isLoading ) return <Loading/>
     
   if (!address) return <Login/>
@@ -61,6 +77,17 @@ const Home: NextPage = () => {
 
       <div className='flex-1'>
       <Header/>
+
+      {winnings > 0 && (
+        <div className='max-w-md md:max-w-2xl lg:max-w-4xl mx-auto mt-5'>
+          <button onClick={onWithdrawWinnings} className='p-5 bg-gradient-to-b from-orange-500 to-emerald-600 animate-pulse text-center rounded-xl w-full'>
+            <p className='font-bold'>Winner Winner Chicken Dinner!</p>
+            <p>Total Winnings: {ethers.utils.formatEther(winnings.toString())}{" "}{currency}</p>
+            <br />
+            <p className='font-semibold'>Click here to withdraw</p>
+          </button>
+        </div>
+      )}
 
       <div className='space-y-5 md:space-y-0 m-5 md:flex md:flex-row items-start justify-center md:space-x-5'>
         <div className='stats-container'>
