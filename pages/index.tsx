@@ -2,7 +2,7 @@ import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
 import Header from '../components/Header'
-import { useContract,useMetamask,useAddress,useDisconnect,useContractRead,useContractWrite } from "@thirdweb-dev/react"
+import { useContract,useAddress,useContractRead,useContractWrite } from "@thirdweb-dev/react"
 import Login from '../components/Login'
 import Loading from '../components/Loading'
 import { useEffect, useState } from 'react'
